@@ -1,60 +1,39 @@
 <?php
-session_start();
-include 'koneksi.php';
+session_start(); // HARUS DI PALING ATAS
 
-// Ambil data dari form
-$username = mysqli_real_escape_string($koneksi, $_POST['username']);
-$password = mysqli_real_escape_string($koneksi, $_POST['password']);
+require_once "Database.php";
 
-// Enkripsi MD5
-$password_md5 = md5($password);
+if (isset($_POST['login'])) {
 
-// Query cek username & password
-$query = "SELECT * FROM user WHERE username='$username' AND pasword='$password_md5'";
-$result = mysqli_query($koneksi, $query);
+    $username = trim($_POST['username']);
+    $password = trim($_POST['pasword']); // SESUAI DB
 
-$login_status = "";
-$login_message = "";
+    $db = Database::connect();
 
-if (mysqli_num_rows($result) > 0) {
-    $user = mysqli_fetch_assoc($result);
+    $stmt = $db->prepare("SELECT * FROM user WHERE username = ?");
+    $stmt->execute([$username]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // Simpan session
-    $_SESSION['user_id']       = $user['id_user'];
-    $_SESSION['username']      = $user['username'];
-    $_SESSION['role']          = $user['role'];
-    $_SESSION['id_mahasiswa']  = $user['id_mahasiswa'];  // ✔ diperbaiki
-    $_SESSION['token']         = bin2hex(random_bytes(32));
+    if (!$user) {
+        echo "<script>alert('Username salah!'); window.location='login.php';</script>";
+        exit;
+    }
 
-    $login_status = "success";
-    $login_message = "Selamat datang, " . $user['username'];
+    // CEK PASSWORD
+    if (md5($password) !== $user['pasword']) {
+        echo "<script>alert('Password salah!'); window.location='login.php';</script>";
+        exit;
+    }
 
-} else {
-    $login_status = "error";
-    $login_message = "Username atau password salah!";
+    // LOGIN BERHASIL
+    $_SESSION['id_user'] = $user['id_user'];
+    $_SESSION['username'] = $user['username'];
+    $_SESSION['role'] = $user['role'];
+
+    header("Location: index.php");
+    exit;
 }
-?>
-<!DOCTYPE html>
-<html>
-<head>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-</head>
-<body>
-
-<script>
-    Swal.fire({
-        icon: '<?php echo $login_status; ?>',
-        title: '<?php echo $login_message; ?>',
-        timer: 2000,
-        showConfirmButton: false
-    }).then(() => {
-        <?php if ($login_status == "success") { ?>
-            window.location = "index.php";
-        <?php } else { ?>
-            window.location = "login.php";
-        <?php } ?>
-    });
-</script>
-
-</body>
-</html>
+else {
+    header("Location: login.php");
+    exit;
+}

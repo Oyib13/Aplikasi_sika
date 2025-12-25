@@ -1,7 +1,7 @@
 <?php
 include 'auth.php';
 include 'layout/navbar.php';
-include 'koneksi.php';
+include 'Database.php';
 
 // Pastikan hanya mahasiswa yg bisa akses halaman profil mahasiswa
 if ($_SESSION['role'] != 'mahasiswa') {
